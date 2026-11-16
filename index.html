@@ -1,0 +1,276 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Word Trainer</title>
+<style>
+:root{--bg:#f6f5f1;--card:#fff;--ink:#1d1d1b;--mute:#6b6a64;--line:#dcdad2;--acc:#2f6fed;--ok:#1f8f4e;--bad:#c93c3c;--okbg:#e3f5ea;--badbg:#fbe6e6;
+box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px);color-scheme:light}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#171716;--card:#232321;--ink:#f0eee8;--mute:#9b9a92;--line:#3a3935;--acc:#6b9bff;--ok:#5cc98a;--bad:#ef7a7a;--okbg:#1b3a29;--badbg:#412323;color-scheme:dark}}
+:root[data-theme="dark"]{--bg:#171716;--card:#232321;--ink:#f0eee8;--mute:#9b9a92;--line:#3a3935;--acc:#6b9bff;--ok:#5cc98a;--bad:#ef7a7a;--okbg:#1b3a29;--badbg:#412323;color-scheme:dark}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.5 system-ui,-apple-system,Segoe UI,Roboto,sans-serif}
+#app{max-width:560px;margin:0 auto;padding:20px 16px 40px}
+h1{font-size:20px;margin:0 0 4px}
+.sub{color:var(--mute);font-size:14px;margin-bottom:12px}
+.bar{height:8px;background:var(--line);border-radius:99px;overflow:hidden}
+.bar i{display:block;height:100%;background:var(--ok);width:0;transition:width .3s}
+.pips{display:flex;flex-wrap:wrap;gap:6px;margin:12px 0 16px}
+.pip{font-size:12px;border:1px solid var(--line);border-radius:99px;padding:2px 9px;color:var(--mute);background:var(--card)}
+.pip.done{color:var(--ok);border-color:var(--ok)}
+.card{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:20px}
+.tag{font-size:12px;text-transform:uppercase;letter-spacing:.06em;color:var(--mute);margin-bottom:8px}
+.big{font-size:32px;font-weight:600;margin:6px 0 16px}
+.hebq{font-size:30px;font-weight:600;margin:6px 0 16px;direction:rtl;text-align:right}
+.opts{display:grid;gap:10px}
+button{font:inherit;color:var(--ink);background:var(--card);border:1px solid var(--line);border-radius:12px;padding:12px 14px;cursor:pointer}
+button:hover:not(:disabled){border-color:var(--acc)}
+button.opt{direction:rtl;text-align:center;font-size:20px}
+button.go{background:var(--acc);color:#fff;border-color:var(--acc);margin-top:14px}
+button.ok{background:var(--okbg);border-color:var(--ok)}
+button.bad{background:var(--badbg);border-color:var(--bad)}
+.sent{font-size:20px;line-height:2.1}
+.blank{display:inline-block;min-width:110px;border-bottom:2px dashed var(--acc);text-align:center;font-weight:600;padding:0 6px}
+.blank.over{background:var(--okbg)}
+.blank.ok{color:var(--ok);border-bottom-style:solid;border-color:var(--ok)}
+.blank.bad{color:var(--bad);border-bottom-style:solid;border-color:var(--bad)}
+.bank{display:flex;flex-wrap:wrap;gap:10px;margin-top:14px}
+.chip{cursor:grab;user-select:none;-webkit-user-select:none}
+input{font:inherit;color:var(--ink);background:var(--bg);border:1px solid var(--line);border-radius:12px;padding:12px 14px;width:100%;box-sizing:border-box;font-size:20px}
+#fb{margin-top:14px;padding:10px 12px;border-radius:10px;display:none}
+#fb.ok{display:block;background:var(--okbg);color:var(--ok)}
+#fb.bad{display:block;background:var(--badbg);color:var(--bad)}
+#fb b{color:var(--ink)}
+.heb{direction:rtl;unicode-bidi:isolate}
+textarea{font:inherit;color:var(--ink);background:var(--bg);border:1px solid var(--line);border-radius:12px;padding:12px 14px;width:100%;box-sizing:border-box;font-size:17px;resize:vertical}
+.err{color:var(--bad);margin-top:8px;font-size:14px}
+.row{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+.row button{margin-top:14px}
+.hint{color:var(--mute);font-size:14px;margin:0 0 10px}
+</style>
+</head>
+<body>
+<div id="app">
+  <h1>Word Trainer</h1>
+  <div class="sub">Learn the Hebrew meaning of each English word. Answer every word correctly 3 times.</div>
+  <div class="bar"><i id="barfill"></i></div>
+  <div class="pips" id="pips"></div>
+  <div class="card" id="card"></div>
+  <div id="chgw" style="margin-top:14px;display:none"><button id="chg">Change word list</button> <button id="skp">Skip to sentences</button></div>
+</div>
+<script>
+const WORDS=[
+ {e:'generous',h:'נדיב',s:['My uncle is ___. He shares his cake with me.','She is so ___ that she gives money to people who need help.','Although he earned little, he was ___ enough to donate half of his salary to the shelter.']},
+ {e:'ancient',h:'עתיק',s:['The old castle is very ___.','We saw ___ coins in the museum that were thousands of years old.','Archaeologists discovered an ___ city that had been buried under the desert for centuries.']},
+ {e:'reluctant',h:'מהסס',s:['The cat is ___ to go in the water.','He was ___ to try the new food because it looked strange.','She was ___ to accept the job because it meant moving away from her family.']},
+ {e:'fragile',h:'שביר',s:['The glass cup is ___.','Please carry the ___ vase with both hands so it does not break.','The ___ peace between the two countries could collapse at any moment.']},
+ {e:'improve',h:'לשפר',s:['I read every day to ___ my English.','If you practice every day, you will ___ your drawing.','The school introduced extra lessons in order to ___ the students\' results.']},
+ {e:'borrow',h:'ללוות',s:['Can I ___ your pencil?','I need to ___ a book from the library for my homework.','He had to ___ some money from his brother to pay for the trip.']},
+ {e:'brave',h:'אמיץ',s:['The ___ dog jumped into the water.','The ___ boy helped the old man cross the busy street.','It was ___ of her to speak the truth, even though everyone disagreed with her.']},
+ {e:'delicious',h:'טעים',s:['This pizza is ___!','My grandmother makes a ___ soup every Friday.','The restaurant was famous for its ___ desserts, which were made fresh every morning.']}
+];
+const TYPES=['mc','drag','rev'];
+const LI={easy:0,medium:1,hard:2};
+const hasS=w=>w.s.some(Boolean);
+const pick=(w,k)=>w.s[LI[k]]||w.s.find(Boolean)||'';
+let W,queue,last,locked,CUR,AT;
+const $=s=>document.querySelector(s);
+const shuffle=a=>{a=[...a];for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]]}return a};
+const others=(w,n)=>shuffle(W.filter(x=>x!==w&&x.h!==w.h&&x.e!==w.e)).slice(0,n);
+
+const KEY='wt-list';
+const clean=s=>(s||'').replace(/[<>&]/g,'').trim();
+function load(){try{return localStorage.getItem(KEY)||''}catch(e){return ''}}
+function save(t){try{localStorage.setItem(KEY,t)}catch(e){}}
+function parse(t){
+  const seen=new Set(),out=[];
+  t.split('\n').forEach(l=>{
+    const p=/[|\t]/.test(l)?l.split(/\s*[|\t]\s*/):l.split(/\s+[-–—]\s+/);
+    const e=clean(p[0]),h=clean(p[1]);
+    if(!e||!h||seen.has(e.toLowerCase()))return;
+    seen.add(e.toLowerCase());
+    const sn=[2,3,4].map(i=>{
+      let x=clean(p[i]);
+      if(x&&!x.includes('___')){
+        const re=new RegExp('\\b'+e.replace(/[.*+?^${}()|[\]\\]/g,'\\$&')+'\\b','i');
+        x=re.test(x)?x.replace(re,'___'):'';
+      }
+      return x;
+    });
+    out.push({e,h,s:sn});
+  });
+  return out;
+}
+function setup(){
+  clearTimeout(AT);
+  $('.bar').style.display=$('#pips').style.display='none';
+  $('#chgw').style.display='none';
+  $('#card').innerHTML=`<div class="tag">Your word list</div>
+  <p class="hint">One word per line: <b>English word | Hebrew meaning | easy sentence | medium sentence | hard sentence</b>. Sentences for the sentence exercises are written automatically for your words, so you only need the first two columns. Optional: add your own easy, medium and hard sentences (columns 3 to 5) to use instead if the automatic ones can't be created. You can paste straight from Excel or Google Sheets.</p>
+  <textarea id="ta" rows="9" dir="auto" spellcheck="false" placeholder="fragile | שביר | The cup is fragile. | Please carry the fragile vase with both hands. | The fragile peace could collapse at any moment."></textarea>
+  <div class="err" id="err"></div>
+  <div class="row"><button class="go" id="st">Start learning</button><button id="ex">Fill with example words</button><button id="sk">Skip to sentences</button></div>`;
+  $('#ta').value=load();
+  $('#st').onclick=()=>{
+    const list=parse($('#ta').value);
+    if(list.length<2){$('#err').textContent='Please enter at least 2 words, each as: English word | Hebrew meaning';return}
+    save($('#ta').value);begin(list);
+  };
+  $('#sk').onclick=()=>{
+    const list=parse($('#ta').value);
+    if(list.length<2){$('#err').textContent='Please enter at least 2 words, each as: English word | Hebrew meaning';return}
+    save($('#ta').value);CUR=list;W=list.map(w=>({...w,c:3,n:0}));showUI();levelScreen();
+  };
+  $('#ex').onclick=()=>{$('#ta').value=WORDS.map(w=>[w.e,w.h,...w.s].join(' | ')).join('\n')};
+}
+function showUI(){$('.bar').style.display=$('#pips').style.display='';$('#chgw').style.display='';$('#chg').onclick=setup;$('#skp').onclick=levelScreen;}
+function begin(list){
+  CUR=list;
+  showUI();
+  W=list.map(w=>({...w,c:0,n:0}));
+  queue=shuffle(W);last=null;next();
+}
+function progress(){
+  const m=W.filter(w=>w.c>=3).length;
+  $('#barfill').style.width=(100*W.reduce((s,w)=>s+Math.min(w.c,3),0)/(W.length*3))+'%';
+  $('#pips').innerHTML=W.map(w=>`<span class="pip${w.c>=3?' done':''}">${w.e} ${'●'.repeat(Math.min(w.c,3))}${'○'.repeat(3-Math.min(w.c,3))}</span>`).join('');
+}
+function next(){
+  progress();locked=false;
+  if(!queue.length){
+    levelScreen();return;
+    
+  }
+  let w=queue.shift();
+  if(w===last&&queue.length){queue.push(w);w=queue.shift()}
+  last=w;
+  const T=hasS(w)?TYPES:['mc','rev'];const t=T[w.n++%T.length];
+  ({mc,drag,rev})[t](w);
+}
+function answer(ok,w){
+  if(locked)return;locked=true;
+  if(ok){w.c++;if(w.c<3)queue.splice(Math.min(queue.length,5),0,w)}
+  else queue.splice(Math.min(queue.length,2),0,w);
+  const fb=document.createElement('div');fb.id='fb';fb.className=ok?'ok':'bad';
+  fb.innerHTML=ok?`Correct! (${w.c}/3)`:`Not quite. <b>${w.e}</b> = <b class="heb">${w.h}</b>. It will come back soon.`;
+  $('#card').appendChild(fb);
+  progress();
+  if(ok){AT=setTimeout(next,900)}
+  else{const b=document.createElement('button');b.className='go';b.textContent='Continue';b.onclick=next;
+  $('#card').appendChild(b);b.focus()}
+}
+function mc(w){
+  $('#card').innerHTML=`<div class="tag">Choose the meaning</div><div class="big">${w.e}</div><div class="opts" id="o"></div>`;
+  shuffle([w,...others(w,3)]).forEach(x=>{
+    const b=document.createElement('button');b.className='opt';b.textContent=x.h;
+    b.onclick=()=>{if(locked)return;b.classList.add(x===w?'ok':'bad');
+      if(x!==w)[...$('#o').children].find(c=>c.textContent===w.h).classList.add('ok');
+      answer(x===w,w)};
+    $('#o').appendChild(b);
+  });
+}
+function drag(w,sent,cb){
+  const [a,b]=(sent||pick(w,'easy')).split('___');
+  $('#card').innerHTML=`<div class="tag">Drag the word into the sentence</div><p class="sent">${a}<span class="blank" id="bl">&nbsp;</span>${b}</p><div class="bank" id="bk"></div>`;
+  const bl=$('#bl');
+  const place=x=>{if(locked)return;bl.textContent=x.e;bl.className='blank '+(x===w?'ok':'bad');(cb||answer)(x===w,w)};
+  shuffle([w,...others(w,3)]).forEach(x=>{
+    const c=document.createElement('button');c.className='chip';c.textContent=x.e;c.draggable=true;
+    c.ondragstart=ev=>ev.dataTransfer.setData('text/plain',x.e);
+    c.onclick=()=>place(x);
+    $('#bk').appendChild(c);
+  });
+  bl.ondragover=ev=>{ev.preventDefault();bl.classList.add('over')};
+  bl.ondragleave=()=>bl.classList.remove('over');
+  bl.ondrop=ev=>{ev.preventDefault();bl.classList.remove('over');
+    const x=W.find(z=>z.e===ev.dataTransfer.getData('text/plain'));if(x)place(x)};
+}
+function rev(w){
+  $('#card').innerHTML=`<div class="tag">Choose the English word</div><div class="hebq heb">${w.h}</div><div class="opts" id="o"></div>`;
+  shuffle([w,...others(w,3)]).forEach(x=>{
+    const b=document.createElement('button');b.className='opt';b.style.direction='ltr';b.textContent=x.e;
+    b.onclick=()=>{if(locked)return;b.classList.add(x===w?'ok':'bad');
+      if(x!==w)[...$('#o').children].find(c=>c.textContent===w.e).classList.add('ok');
+      answer(x===w,w)};
+    $('#o').appendChild(b);
+  });
+}
+let FQ=[],FN=0,FT=0,FL=null;
+function levelScreen(){
+  clearTimeout(AT);
+  $('#card').innerHTML=`<div class='big'>🎉 Words mastered!</div><p class='hint'>Every word was answered correctly 3 times. Next: put the words into sentences. Choose the level of the sentences:</p><div class='opts' id='lv'></div><div class='err' id='err'></div><div class='row'><button id='again'>Practice the words again</button><button id='edit2'>Change word list</button></div>`;
+  [['easy','🟢 Easy','very short and simple, for age 8'],['medium','🟡 Medium','everyday sentences, for age 11'],['hard','🔴 Hard','longer, more complex sentences, for age 13']].forEach(([k,t,d])=>{
+    const b=document.createElement('button');b.style.textAlign='left';b.innerHTML=`<b>${t}</b> · ${d}`;
+    b.onclick=()=>startFill(k);$('#lv').appendChild(b);
+  });
+  $('#again').onclick=()=>begin(CUR);$('#edit2').onclick=setup;
+}
+const LV={
+ easy:'VERY simple sentences for a child of 8 who is learning English: 4 to 7 words, only very common everyday words, present tense, about family, animals, school, food or play. The sentence must make the missing word easy to guess.',
+ medium:'sentences for an 11-year-old who is learning English: 8 to 12 words, everyday topics, simple past or present tense, and enough context to show which word is missing.',
+ hard:'sentences for a 13-year-old who is learning English: 12 to 18 words, richer vocabulary and a more complex structure (for example two clauses joined by because, although or when), with context so that only the missing word fits.'
+};
+const GEN={};
+async function startFill(k){
+  const err=$('#err');showUI();
+  err.style.color='var(--mute)';
+  [...$('#lv').children].forEach(b=>b.disabled=true);
+  let data=GEN[k]||null,why='';
+  if(!data){
+    err.textContent='Claude is writing sentences for your words… this can take up to a minute.';
+    try{
+      const sample=typeof claude!=='undefined'?await claude.use('sample'):null;
+      if(!sample)why='unavailable';
+      else{
+        const list=W.map(w=>w.e+' = '+w.h).join('; ');
+        const prompt='Write exactly 2 different English example sentences for each word below, to practice vocabulary. In each sentence replace the word with ___ (three underscores). The word must fit exactly as written, with no change to its form (no -s, -ed or -ing endings), and the sentence must make the word clearly the right choice. Sentence level: '+LV[k]+' Words (English = Hebrew meaning): '+list+'. Return ONLY a JSON array with one object per word, in the same order, each with the keys "word" (the English word) and "sentences" (an array of 2 strings).';
+        data=await sample.json(prompt);
+        GEN[k]=data;
+      }
+    }catch(e){why=e&&e.code||'error';data=null}
+  }
+  const items=[];
+  W.forEach(w=>{
+    const d=Array.isArray(data)&&data.find(x=>x&&String(x.word).toLowerCase()===w.e.toLowerCase());
+    let ss=d&&Array.isArray(d.sentences)?d.sentences.map(x=>clean(String(x))).filter(x=>x.includes('___')).slice(0,2):[];
+    if(!ss.length){const t=pick(w,k);if(t)ss=[t]}
+    ss.forEach(x=>items.push({w,s:x}));
+  });
+  if(!items.length){
+    err.style.color='var(--bad)';
+    err.textContent=why==='not_granted'?'To write the sentences, Claude needs your permission on this page. Please choose a level again and allow it.':why==='rate_limited'?'Too many requests. Please wait a minute and try again.':'Could not create sentences right now. Please try again.';
+    [...$('#lv').children].forEach(b=>b.disabled=false);return;
+  }
+  FQ=shuffle(items);FT=FQ.length;FN=0;FL=null;nextFill();
+}
+function fillProg(){
+  $('#barfill').style.width=(100*FN/FT)+'%';
+  $('#pips').innerHTML=`<span class='pip'>Sentences: ${FN}/${FT}</span>`;
+}
+function nextFill(){
+  locked=false;fillProg();
+  if(!FQ.length){
+    $('#card').innerHTML=`<div class='big'>🏆 Great job!</div><p>You finished all the sentences.</p><div class='row'><button class='go' id='lvl'>Try another level</button><button id='again'>Practice the words again</button></div>`;
+    $('#lvl').onclick=levelScreen;$('#again').onclick=()=>begin(CUR);return;
+  }
+  let it=FQ.shift();
+  if(FL&&it.w===FL&&FQ.length){FQ.push(it);it=FQ.shift()}
+  FL=it.w;
+  drag(it.w,it.s,ok=>fillAnswer(ok,it));
+}
+function fillAnswer(ok,it){
+  if(locked)return;locked=true;
+  if(ok)FN++;else FQ.splice(Math.min(FQ.length,2),0,it);
+  const fb=document.createElement('div');fb.id='fb';fb.className=ok?'ok':'bad';
+  fb.innerHTML=ok?'Correct!':`Not quite. The missing word is <b>${it.w.e}</b> = <b class='heb'>${it.w.h}</b>. This sentence will come back.`;
+  $('#card').appendChild(fb);
+  fillProg();
+  if(ok){AT=setTimeout(nextFill,900)}
+  else{const b=document.createElement('button');b.className='go';b.textContent='Continue';b.onclick=nextFill;
+  $('#card').appendChild(b);b.focus()}
+}
+setup();
+</script>
+</body>
+</html>
