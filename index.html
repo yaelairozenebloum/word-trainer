@@ -211,7 +211,7 @@ const LV={
  medium:'sentences for an 11-year-old who is learning English: 8 to 12 words, everyday topics, simple past or present tense, and enough context to show which word is missing.',
  hard:'sentences for a 13-year-old who is learning English: 12 to 18 words, richer vocabulary and a more complex structure (for example two clauses joined by because, although or when), with context so that only the missing word fits.'
 };
-const GEN={};
+const GEN={};let ERRMSG='';
 async function startFill(k){
   const err=$('#err');showUI();
   err.style.color='var(--mute)';
@@ -228,7 +228,7 @@ async function startFill(k){
         data=await sample.json(prompt);
         GEN[k]=data;
       }
-    }catch(e){why=e&&e.code||'error';data=null}
+    }catch(e){why=e&&e.code||'error';ERRMSG=(e&&e.message)||'';data=null;try{console.error('sample failed',e)}catch(_){}}
   }
   const items=[];
   W.forEach(w=>{
@@ -239,7 +239,7 @@ async function startFill(k){
   });
   if(!items.length){
     err.style.color='var(--bad)';
-    err.textContent=why==='not_granted'?'To write the sentences, Claude needs your permission on this page. Please choose a level again and allow it.':why==='rate_limited'?'Too many requests. Please wait a minute and try again.':'Could not create sentences right now. Please try again.';
+    err.textContent=why==='not_granted'?'To write the sentences, Claude needs your permission on this page. Please choose a level again and allow it.':why==='unavailable'?'Claude is not available in this view. Open the page from the Claude artifact link inside Claude (not from a downloaded file or GitHub). Error: unavailable':why==='rate_limited'?'Too many requests. Please wait a minute and try again.':'Could not create sentences. Error: '+why+(ERRMSG?' - '+ERRMSG:'')+(Array.isArray(data)?'':'');
     [...$('#lv').children].forEach(b=>b.disabled=false);return;
   }
   FQ=shuffle(items);FT=FQ.length;FN=0;FL=null;nextFill();
